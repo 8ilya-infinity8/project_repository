@@ -5,7 +5,8 @@ import pyqtgraph as pg
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QLineEdit, QPushButton, QLabel
 from PyQt5.QtGui import QFont
 
-from main_ui import Ui_Form
+from calc_exp import Ui_Form
+
 
 class MainWidget(QMainWindow, Ui_Form):
     def __init__(self):
@@ -19,6 +20,9 @@ class MainWidget(QMainWindow, Ui_Form):
         [i.clicked.connect(self.run) for i in self.buttonGroup_digits.buttons()]
         [i.clicked.connect(self.calc) for i in self.buttonGroup_binary.buttons()]
         [i.clicked.connect(self.change_notation) for i in self.buttonGroup_not.buttons()]
+        [i.clicked.connect(self.func) for i in self.buttonGroup_more.buttons()]
+        [i.clicked.connect(self.trygonometric) for i in self.buttonGroup_tryg.buttons()]
+
         self.btn_dec.setDisabled(True)
 
         self.btn_dot.clicked.connect(self.run)
@@ -30,6 +34,8 @@ class MainWidget(QMainWindow, Ui_Form):
 
         self.btn_sqrt.clicked.connect(self.sqrt)
         self.btn_fact.clicked.connect(self.fact)
+        self.btn_pi.clicked.connect(self.pi)
+        self.btn_e.clicked.connect(self.exp)
 
         self.graphics_btn.clicked.connect(self.open_graphics)
         self.beta_btn.clicked.connect(self.check_beta)
@@ -41,12 +47,12 @@ class MainWidget(QMainWindow, Ui_Form):
         self.tryg = {'sin': sin, 'cos': cos, 'tg': tan,
                      'ctg': lambda x: cos(x) / sin(x)}
         self.more = {'ln': log, 'log': log10, 'log2': log2, 'rnd': round}
+
         self.nots = {'bin': self.btn_bin, 'oct': self.btn_oct,
                      'dec': self.btn_dec, 'hex': self.btn_hex}
 
         # Переменная, в которой хранится последнее введённое число/результат вычисленного выражения
         self.data = ''
-        self.disp = ''
         # Переменная, в которой хранится выражение, которое нужно подсчитать
         self.data_eval = ''
         # Переменная, в которой записана текущая система счисления
@@ -104,15 +110,31 @@ class MainWidget(QMainWindow, Ui_Form):
 
     def fact(self):
         if self.data:
-            self.extreme()
-            self.data = self.real_fact(int(float(self.data)))
-            self.custom_display(str(self.data))
+            self.data = str(self.real_fact(int(float(self.data))))
+            self.custom_display(self.data)
 
-    ## Сброс всех данных, очистка экрана
+    def exp(self):
+        self.data = str(e)
+        self.custom_display(self.data)
+
+    def pi(self):
+        self.data = str(pi)
+        self.custom_display(self.data)
+
+    def func(self):
+        if self.data:
+            self.data = str(self.more[self.sender().text()](float(self.data)))
+            self.custom_display(self.data)
+
+    def trygonometric(self):
+        if self.data:
+            self.data = str(self.tryg[self.sender().text()](radians(float(self.data))))
+            self.custom_display(self.data)
+
+    # Сброс всех данных, очистка экрана
     def clear(self):
         self.data = ''
         self.data_eval = ''
-        self.disp = ''
         self.table.display('')
 
     def clear_s(self):
@@ -120,7 +142,7 @@ class MainWidget(QMainWindow, Ui_Form):
         self.table.display('')
 
     def run(self):
-        ## Формируется число с помощью нажатий кнопок и отображается на дисплее
+        # Формируется число с помощью нажатий кнопок и отображается на дисплее
         if self.sender().text() == '.':
             if '.' in self.data:
                 return
@@ -134,23 +156,28 @@ class MainWidget(QMainWindow, Ui_Form):
 
     def sqrt(self):
         if self.data:
-            self.extreme()
-            self.data = float(self.data)**0.5
-            self.custom_display(str(self.data))
+            self.data = str(float(self.data)**0.5)
+            self.custom_display(self.data)
 
     def extreme(self):
-        return
-        print('active')
+        # нерабочая функция для будущей полной реализации систем счисления
         if self.data:
             self.data = self.convert_from(self.data)
-
 
     def change_notation(self):
         lst = self.buttonGroup_digits.buttons()
         if self.sender().text() == 'dec':
-            self.btn_dot.setDisabled(False)
+            var = False
         else:
-            self.btn_dot.setDisabled(True)
+            var = True
+        [i.setDisabled(var) for i in self.buttonGroup_tryg.buttons()]
+        [i.setDisabled(var) for i in self.buttonGroup_more.buttons()]
+        self.btn_sqrt.setDisabled(var)
+        self.btn_fact.setDisabled(var)
+        self.btn_pi.setDisabled(var)
+        self.btn_e.setDisabled(var)
+        self.btn_dot.setDisabled(var)
+        self.btn_pow.setDisabled(var)
         if self.sender().text() == 'oct':
             self.btn8.setDisabled(True)
             self.btn9.setDisabled(True)
@@ -165,34 +192,23 @@ class MainWidget(QMainWindow, Ui_Form):
         self.notation[0] = self.notation[1]
         self.notation[1] = self.sender().text()
         if self.data:
-            self.data = self.convert_into(self.data)
-            self.data = self.convert_from(self.data)
-            self.extreme()
             self.custom_display(self.data)
 
     def convert_from(self, n):
         conv = {'bin': 2, 'oct': 8, 'hex': 16}
         if self.notation[1] == 'dec':
-            return str(float(n))
+            return n
         return str(int(n, conv[self.notation[1]]))
 
     def convert_into(self, n):
         conv = {'bin': bin, 'oct': oct, 'hex': hex}
         if self.notation[1] == 'dec':
-            if self.notation[0] != 'dec':
-                self.notation[1], self.notation[0] = self.notation[0], self.notation[1]
-                n = self.convert_from(str(int(float(n))))
-                self.notation[1], self.notation[0] = self.notation[0], self.notation[1]
             return n
         n = int(float(n))
         return conv[self.notation[1]](n)[2:]
 
     def custom_display(self, data):
-        print(data, self.notation)
-        if self.notation[1] == 'dec' and self.notation[0] != 'dec':
-            print('stop')
-        else:
-            data = self.convert_into(data)
+        data = self.convert_into(data)
         try:
             data = float(data)
             if data == int(data):
@@ -204,7 +220,6 @@ class MainWidget(QMainWindow, Ui_Form):
 
     def pre_res(self):
         if self.flag2:
-            self.extreme()
             self.data_eval += self.data
             self.data = ''
             self.result()
@@ -227,11 +242,8 @@ class MainWidget(QMainWindow, Ui_Form):
 
     def calc(self):
         ## Происходит вычисление текущего выражения и дописывается новый знак. Если последним был уже знак действия, то он менятся.
-        print('1|', self.data_eval, '|', self.data, '|')
-        self.extreme()
         self.data_eval += self.data
         self.data = ''
-        print('2|', self.data_eval, '|', self.data, '|')
         if self.data_eval:
             self.result()
             if not self.data_eval:
