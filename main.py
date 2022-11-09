@@ -3,15 +3,17 @@ from math import *
 import pyqtgraph as pg
 
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QLineEdit, QPushButton, QLabel
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QIcon
 
-from calc_exp import Ui_Form
+from main_ui import Ui_Form
 
 
 class MainWidget(QMainWindow, Ui_Form):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+        self.setWindowIcon(QIcon('icon.png'))
+        self.setStyleSheet("background-color: #D1DFDB;")
         self.setFixedWidth(353)
         self.setFixedHeight(572)
         self.table.setFixedWidth(338)
@@ -51,17 +53,19 @@ class MainWidget(QMainWindow, Ui_Form):
         self.nots = {'bin': self.btn_bin, 'oct': self.btn_oct,
                      'dec': self.btn_dec, 'hex': self.btn_hex}
 
-        # Переменная, в которой хранится последнее введённое число/результат вычисленного выражения
+        # Переменная, в которой хранится введенное число
         self.data = ''
         # Переменная, в которой хранится выражение, которое нужно подсчитать
         self.data_eval = ''
-        # Переменная, в которой записана текущая система счисления
+        # Переменная, в которой записана прошлая и текущая система счисления
         self.notation = ['-', 'dec']
 
         self.flag1 = False
         self.flag2 = False
+        self.xtrime = False
 
     def info(self):
+        # Окно справки по посторойке графиков
         info_box = QMessageBox(self)
         info_box.setWindowTitle('Справка по графикам')
         info_box.setIcon(QMessageBox.Information)
@@ -78,6 +82,7 @@ class MainWidget(QMainWindow, Ui_Form):
         info_box.show()
 
     def open_graphics(self):
+        # Открытие панели для постройки графиков
         if self.graphics_btn.isChecked():
             self.setFixedHeight(700)
         else:
@@ -90,6 +95,7 @@ class MainWidget(QMainWindow, Ui_Form):
             self.close_beta()
 
     def transform(self):
+        # трансформация основного окна для расширения калькулятора
         if self.flag1:
             self.table.setFixedWidth(338)
             self.table.setDigitCount(8)
@@ -109,35 +115,41 @@ class MainWidget(QMainWindow, Ui_Form):
             return n * self.real_fact(n - 1)
 
     def fact(self):
+        # функция для кнопки факториала
         if self.data:
             self.data = str(self.real_fact(int(float(self.data))))
             self.custom_display(self.data)
 
     def exp(self):
+        # функция для кнопки числа е
         self.data = str(e)
         self.custom_display(self.data)
 
     def pi(self):
+        # функция для кнопки числа pi
         self.data = str(pi)
         self.custom_display(self.data)
 
     def func(self):
+        # функция для кнопок дополнительных операций над числом
         if self.data:
             self.data = str(self.more[self.sender().text()](float(self.data)))
             self.custom_display(self.data)
 
     def trygonometric(self):
+        # функция для кнопок тригонометрии
         if self.data:
             self.data = str(self.tryg[self.sender().text()](radians(float(self.data))))
             self.custom_display(self.data)
 
-    # Сброс всех данных, очистка экрана
     def clear(self):
+        # Сброс всех данных, очистка экрана
         self.data = ''
         self.data_eval = ''
         self.table.display('')
 
     def clear_s(self):
+        # Сброс последнего числа (не доработано)
         self.data = ''
         self.table.display('')
 
@@ -153,18 +165,23 @@ class MainWidget(QMainWindow, Ui_Form):
             self.data = self.sender().text()
             self.table.display(self.data)
         self.flag2 = True
+        self.xtrime = True
 
     def sqrt(self):
+        # функция для кнопки квадратного корня
         if self.data:
             self.data = str(float(self.data)**0.5)
             self.custom_display(self.data)
 
     def extreme(self):
-        # нерабочая функция для будущей полной реализации систем счисления
-        if self.data:
+        # перевод введенных чисел в десятеричную систему счисления
+        if self.xtrime:
             self.data = self.convert_from(self.data)
+        self.xtrime = False
 
     def change_notation(self):
+        # смена системы счисления, блокирование определенных кнопок
+        self.extreme()
         lst = self.buttonGroup_digits.buttons()
         if self.sender().text() == 'dec':
             var = False
@@ -193,14 +210,18 @@ class MainWidget(QMainWindow, Ui_Form):
         self.notation[1] = self.sender().text()
         if self.data:
             self.custom_display(self.data)
+        elif self.data_eval:
+            self.custom_display(self.data_eval)
 
     def convert_from(self, n):
+        # перевод в десятеричную систему счисления
         conv = {'bin': 2, 'oct': 8, 'hex': 16}
         if self.notation[1] == 'dec':
             return n
         return str(int(n, conv[self.notation[1]]))
 
     def convert_into(self, n):
+        # перевод из десятеричной системы счисления
         conv = {'bin': bin, 'oct': oct, 'hex': hex}
         if self.notation[1] == 'dec':
             return n
@@ -208,6 +229,7 @@ class MainWidget(QMainWindow, Ui_Form):
         return conv[self.notation[1]](n)[2:]
 
     def custom_display(self, data):
+        # вывод в нужной системе счисления и без лишнего
         data = self.convert_into(data)
         try:
             data = float(data)
@@ -219,14 +241,16 @@ class MainWidget(QMainWindow, Ui_Form):
             self.table.display(data)
 
     def pre_res(self):
+        # функция кнопки равно
         if self.flag2:
+            self.extreme()
             self.data_eval += self.data
             self.data = ''
             self.result()
         self.flag2 = False
 
     def result(self):
-        ## Происходит попытка вычисления выражения, в случае попытки деления на 0 выводится ошибка
+        # Попытка вычисления выражения, в случае деления на 0 выводится ошибка
         try:
             float(self.data_eval)
         except:
@@ -238,10 +262,11 @@ class MainWidget(QMainWindow, Ui_Form):
                 self.table.display('Error')
             except:
                 pass
-        # self.disp = str(self.data)
 
     def calc(self):
-        ## Происходит вычисление текущего выражения и дописывается новый знак. Если последним был уже знак действия, то он менятся.
+        # Происходит вычисление текущего выражения и дописывается новый знак.
+        # Если последним был уже знак действия, то он менятся.
+        self.extreme()
         self.data_eval += self.data
         self.data = ''
         if self.data_eval:
@@ -257,6 +282,7 @@ class MainWidget(QMainWindow, Ui_Form):
         self.flag2 = True
 
     def create_chart(self):
+        # алгоритм построения графиков
         def create_line(chart, start, points, pen):
             chart.graphWidget.plot(start, points, pen=pen)
 
@@ -314,6 +340,7 @@ class MainWidget(QMainWindow, Ui_Form):
 
 
 class Chart(QMainWindow):
+    # класс окна графика
     def __init__(self, parent=None):
         super(Chart, self).__init__(parent)
         self.setWindowTitle('График')
@@ -321,9 +348,10 @@ class Chart(QMainWindow):
 
 
 class Beta(QMainWindow):
+    # класс окна калькулятора в строке
     def __init__(self, parent=None):
         super(Beta, self).__init__(parent)
-        self.setWindowTitle('Бета калькулятор')
+        self.setWindowTitle('Простой калькулятор')
         self.setFixedSize(500, 100)
 
         self.line = QLineEdit(self)
@@ -343,6 +371,7 @@ class Beta(QMainWindow):
         self.label.setFont(QFont('New Times Roman', 10))
 
     def display(self):
+        # попытка вывода ответа
         self.line.setText(self.line.text().replace('=', ''))
         try:
             s = self.line.text().replace('^', '**')
